@@ -1,8 +1,9 @@
 {
   "name": "hap-client",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Control HomeKit-enabled devices with Node",
-  "main": "dist/HapClient.js",
+  "type": "module",
+  "main": "src/HapClient.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/forty2/hap-client.git"
@@ -16,44 +17,16 @@
     "automation"
   ],
   "scripts": {
-    "build": "babel src -d dist -D",
-    "clean": "rm -rf dist/",
-    "test": "mocha",
-    "prepublish": "npm run build"
+    "test": "mocha"
   },
   "author": "Zach Bean <zb@forty2.com>",
   "license": "MIT",
   "devDependencies": {
-    "babel-cli": "^6.24.1",
-    "babel-core": "^6.14.0",
-    "babel-plugin-syntax-function-bind": "^6.13.0",
-    "babel-plugin-transform-function-bind": "^6.8.0",
-    "babel-plugin-transform-object-rest-spread": "^6.8.0",
-    "babel-preset-env": "^1.4.0",
-    "debug": "^2.6.4",
-    "mocha": "^3.3.0",
-    "simple-plist": "^0.2.1"
-  },
-  "babel": {
-    "sourceMaps": "inline",
-    "presets": [
-      [
-        "env",
-        {
-          "targets": {
-            "node": 6
-          }
-        }
-      ]
-    ],
-    "plugins": [
-      "syntax-function-bind",
-      "transform-function-bind",
-      "transform-object-rest-spread"
-    ]
+    "debug": "^4.3.4",
+    "mocha": "^10.2.0"
   },
   "engines": {
-    "node": ">=6.0"
+    "node": ">=18.0"
   },
   "bugs": {
     "url": "https://github.com/forty2/hap-client/issues"
@@ -61,14 +34,13 @@
   "homepage": "https://github.com/forty2/hap-client#readme",
   "dependencies": {
     "buffer-reader": "^0.1.0",
-    "enum": "^2.4.0",
-    "fast-srp-hap": "^1.0.1",
-    "keytar": "^4.0.2",
-    "message-socket": "^1.0.3",
+    "enum": "^3.0.4",
+    "fast-srp-hap": "^2.0.4",
+    "keytar": "^7.9.0",
+    "message-socket": "^1.0.4",
     "node-hkdf-sync": "^1.0.0",
-    "rxjs": "^5.3.0",
-    "sodium": "^2.0.1",
-    "source-map-support": "^0.4.15",
+    "rxjs": "^7.8.1",
+    "sodium": "^3.0.2",
     "uuidv5": "^1.0.0"
   }
 }

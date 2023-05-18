@@ -13,37 +13,39 @@ import Cryptographer from './lib/cryptographer';
 import AuthHeader from './lib/authorization';
 import SecureStore from './SecureStore';
 
-const debug = require('debug')('hap-client:hap');
+import debug from 'debug';
+
+const logger = debug('hap-client:hap');
 
 const { Tag } = tlv;
 
 const ErrorCode =
     new Enum({
-        None:                      0x00,
-        Unknown:                   0x01,
-        AuthenticationFailed:      0x02, // eg client proof is wrong
-        TooManyAttempts:           0x03,
-        UnknownPeer:               0x04,
-        MaxPeer:                   0x05,
+        None: 0x00,
+        Unknown: 0x01,
+        AuthenticationFailed: 0x02, // eg client proof is wrong
+        TooManyAttempts: 0x03,
+        UnknownPeer: 0x04,
+        MaxPeer: 0x05,
         MaxAuthenticationAttempts: 0x06
     });
 
-const PairStep = 
+const PairStep =
     new Enum({
-        StartRequest:        0x01,
-        StartResponse:       0x02, 
-        VerifyRequest:       0x03,
-        VerifyResponse:      0x04,
-        KeyExchangeRequest:  0x05,
+        StartRequest: 0x01,
+        StartResponse: 0x02,
+        VerifyRequest: 0x03,
+        VerifyResponse: 0x04,
+        KeyExchangeRequest: 0x05,
         KeyExchangeResponse: 0x06
     });
 
 const VerifyStep =
     new Enum({
-        StartRequest:        0x01,
-        StartResponse:       0x02, 
-        FinishRequest:       0x03,
-        FinishResponse:      0x04
+        StartRequest: 0x01,
+        StartResponse: 0x02,
+        FinishRequest: 0x03,
+        FinishResponse: 0x04
     });
 
 function getSession(secureStore, seed) {
@@ -56,11 +58,11 @@ function getSession(secureStore, seed) {
                         .empty();
 
                 if (!clientInfo.longTerm) {
-                    debug('Generating long-term keys');
+                    logger('Generating long-term keys');
                     clientInfo.longTerm =
                         Sodium.crypto_sign_keypair();
 
-                     saveClientInfo =
+                    saveClientInfo =
                         Observable
                             .from(
                                 clientInfo.save()
@@ -68,7 +70,7 @@ function getSession(secureStore, seed) {
                             .ignoreElements();
                 }
 
-                debug('Reusing long-term keys');
+                logger('Reusing long-term keys');
                 return saveClientInfo
                     .concat(
                         Observable
@@ -89,7 +91,7 @@ function getAt(idx) {
 }
 
 function handleResponse(vtable, steps, session, completeCondition = () => false) {
-    return function(response) {
+    return function (response) {
         if (response && !completeCondition(response)) {
             if (response.status < 200 || response.status >= 400) {
                 return Observable.throw(new Error(`Bad status: ${response.status} ${response.statusText}`));
@@ -97,14 +99,14 @@ function handleResponse(vtable, steps, session, completeCondition = () => false)
 
             const data = response.body;
 
-            const errorCode = data[Tag.ErrorCode]::getAt(0);
+            const errorCode = getAt.call(data[Tag.ErrorCode], 0);
             if (errorCode) {
                 return Observable.throw(new Error("Pairing failure: " + ErrorCode.get(errorCode).key));
             }
-            
+
             const step = steps.get(data[Tag.Sequence][0]);
 
-            debug("--> [%d] %o", step, data)
+            logger("--> [%d] %o", step, data)
 
             let handler = vtable[step];
             return handler
@@ -115,9 +117,9 @@ function handleResponse(vtable, steps, session, completeCondition = () => false)
     }
 }
 
-function toNodeObservable () {
+function toNodeObservable() {
     var self = this;
-    return function() {
+    return function () {
         return Observable.bindNodeCallback(self)(...arguments)
     }
 }
@@ -126,25 +128,24 @@ const PairingContentType = 'application/pairing+tlv8';
 
 const CLIENT_ID_NAMESPACE = 'fdde9099-dae4-4a18-ad5d-a2b07b8ebb9b';
 
-class HapClient
-{
+class HapClient {
     constructor(clientName, ip, port) {
         Object.defineProperty(
             this, '_client', {
-                value: new EventedHttpClient(ip, port)
-            }
+            value: new EventedHttpClient(ip, port)
+        }
         );
 
         Object.defineProperty(
             this, '_clientId', {
-                value: uuidv5(CLIENT_ID_NAMESPACE, clientName)
-            }
+            value: uuidv5(CLIENT_ID_NAMESPACE, clientName)
+        }
         );
 
         Object.defineProperty(
             this, '_clientName', {
-                value: clientName
-            }
+            value: clientName
+        }
         );
     }
 
@@ -163,14 +164,14 @@ class HapClient
                             Tag.Sequence, PairStep.StartRequest.value
                         );
 
-                    debug("encoded request: %o", req);
+                    logger("encoded request: %o", req);
 
                     return session.http.post('/pair-setup', req, PairingContentType)
                         .expand(
                             handleResponse(
                                 {
-                                    [PairStep.StartResponse]:       handlePairStartResponse,
-                                    [PairStep.VerifyResponse]:      handlePairVerifyResponse,
+                                    [PairStep.StartResponse]: handlePairStartResponse,
+                                    [PairStep.VerifyResponse]: handlePairVerifyResponse,
                                     [PairStep.KeyExchangeResponse]: handlePairKeyExchangeResponse
                                 },
                                 PairStep,
@@ -195,10 +196,10 @@ class HapClient
                 return Observable.throw(new Error(`serverPublicKey must be 384 bytes (but was ${serverPublicKey.length})`));
             }
 
-            debug(" -> s: %s", salt.toString('hex'));
-            debug(" -> B: %s", serverPublicKey.toString('hex'));
+            logger(" -> s: %s", salt.toString('hex'));
+            logger(" -> B: %s", serverPublicKey.toString('hex'));
 
-            const genKey = ::srp.genKey::toNodeObservable()
+            const genKey = toNodeObservable.call(srp.genKey.call(srp))
             return genKey()
                 .flatMap(
                     a =>
@@ -207,14 +208,14 @@ class HapClient
                                 pinProvider
                             )
                             .map(pin => {
-                                debug("got code: >%s<", pin);
+                                logger("got code: >%s<", pin);
                                 session.pinCode = pin;
                                 return a;
                             })
                 )
                 .flatMap(
                     a => {
-                        debug("a: " + a.toString('hex'));
+                        logger("a: " + a.toString('hex'));
                         //   3. Generate my key pair <-- requires knowing PIN
                         session.rp =
                             new srp.Client(
@@ -228,11 +229,11 @@ class HapClient
 
                         //   4. POST my public key and password proof to /pair-setup
                         const A = session.rp.computeA(),
-                             M1 = session.rp.computeM1()
+                            M1 = session.rp.computeM1()
                             ;
 
-                        debug(" <-  A: %s", A.toString('hex'));
-                        debug(" <- M1: %s", M1.toString('hex'));
+                        logger(" <-  A: %s", A.toString('hex'));
+                        logger(" <- M1: %s", M1.toString('hex'));
 
                         const verifyRequest =
                             tlv.encode(
@@ -241,7 +242,7 @@ class HapClient
                                 Tag.PublicKey, A,
                                 Tag.Proof, M1
                             );
-                        debug("encoded request: %o", verifyRequest);
+                        logger("encoded request: %o", verifyRequest);
 
                         return session.http
                             .post('/pair-setup', verifyRequest, PairingContentType);
@@ -250,11 +251,11 @@ class HapClient
         }
 
         function handlePairVerifyResponse(response, data, session) {
-            debug('got a verify response');
+            logger('got a verify response');
 
             //   5. Read and verify the server's password proof
             const serverProof = data[Tag.Proof];
-            debug(" -> M2: %s", serverProof.toString('hex'));
+            logger(" -> M2: %s", serverProof.toString('hex'));
 
             try {
                 session.rp.checkM2(serverProof);
@@ -270,7 +271,7 @@ class HapClient
                     session.rp.computeK()
                 ).derive('Pair-Setup-Encrypt-Info', 32);
 
-            debug("key: %s", session.encryptionKey.toString('hex'));
+            logger("key: %s", session.encryptionKey.toString('hex'));
 
             //   7. POST an encrypted message to /pair-setup
             const hash =
@@ -301,7 +302,7 @@ class HapClient
                     Tag.Signature, signature
                 );
 
-            const [ encrypted, seal ] =
+            const [encrypted, seal] =
                 enc.encryptAndSeal(
                     message,
                     null,
@@ -309,29 +310,29 @@ class HapClient
                     session.encryptionKey
                 );
 
-            debug('encrypted: ' + encrypted.toString('hex'));
-            debug('seal: ' + seal.toString('hex'));
+            logger('encrypted: ' + encrypted.toString('hex'));
+            logger('seal: ' + seal.toString('hex'));
 
             const container =
                 tlv.encode(
                     Tag.PairingMethod, 0x0,
                     Tag.Sequence, PairStep.KeyExchangeRequest.value,
-                    Tag.EncryptedData, Buffer.concat([ encrypted, seal ])
+                    Tag.EncryptedData, Buffer.concat([encrypted, seal])
                 );
 
             return session.http
                 .post('/pair-setup', container, PairingContentType);
         }
-        
+
         function handlePairKeyExchangeResponse(response, data, session) {
-            debug('got a key exchange response');
+            logger('got a key exchange response');
 
             //   8. Read encrypted response; decode to reveal username, long-term public key, signature
             const ciphertext = data[Tag.EncryptedData];
-            const [ encrypted, hmac ] = [ ciphertext.slice(0, -16), ciphertext.slice(-16) ];
+            const [encrypted, hmac] = [ciphertext.slice(0, -16), ciphertext.slice(-16)];
 
-            debug('message: ' + encrypted.toString('hex'));
-            debug('hmac: ' + hmac.toString('hex'));
+            logger('message: ' + encrypted.toString('hex'));
+            logger('hmac: ' + hmac.toString('hex'));
 
             const message =
                 enc.verifyAndDecrypt(
@@ -348,8 +349,8 @@ class HapClient
                 const accLTPK = data[Tag.PublicKey];
                 const accSign = data[Tag.Signature];
 
-                debug('accessory name: ' + accName.toString('utf8'));
-                debug('LTPK: ' + accLTPK.toString('hex'));
+                logger('accessory name: ' + accName.toString('utf8'));
+                logger('LTPK: ' + accLTPK.toString('hex'));
 
                 const hash =
                     new HKDF(
@@ -358,7 +359,7 @@ class HapClient
                         session.rp.computeK()
                     ).derive('Pair-Setup-Accessory-Sign-Info', 32);
 
-                const material = Buffer.concat([ hash, accName, accLTPK ]);
+                const material = Buffer.concat([hash, accName, accLTPK]);
                 if (Sodium.crypto_sign_verify_detached(accSign, material, accLTPK)) {
                     //   WE ARE NOW PAIRED.
 
@@ -379,7 +380,7 @@ class HapClient
                                 session
                             })
                         )
-                    ;
+                        ;
                 }
 
                 return Observable.throw(new Error("Unable to verify key exchange; PAIRING FAILED."));
@@ -418,14 +419,14 @@ class HapClient
                         Tag.Sequence, VerifyStep.StartRequest.value,
                         Tag.PublicKey, session.publicKey
                     );
-                    debug("encoded request: %o", req);
+                    logger("encoded request: %o", req);
 
                     //   1. POST my public key (etc) to /pair-verify
                     return session.http.post('/pair-verify', req, PairingContentType)
                         .expand(
                             handleResponse(
                                 {
-                                    [VerifyStep.StartResponse]:  handleVerifyStartResponse,
+                                    [VerifyStep.StartResponse]: handleVerifyStartResponse,
                                     [VerifyStep.FinishResponse]: handleVerifyFinishResponse
                                 },
                                 VerifyStep,
@@ -454,8 +455,8 @@ class HapClient
                         session.privateKey,
                         serverPublicKey
                     );
-                
-            session.encryptionKey = 
+
+            session.encryptionKey =
                 new HKDF(
                     'sha512',
                     'Pair-Verify-Encrypt-Salt',
@@ -464,7 +465,7 @@ class HapClient
 
             //   4. Decrypt and validate the message
             const ciphertext = data[Tag.EncryptedData];
-            const [ encrypted, hmac ] = [ ciphertext.slice(0, -16), ciphertext.slice(-16) ];
+            const [encrypted, hmac] = [ciphertext.slice(0, -16), ciphertext.slice(-16)];
 
             const message =
                 enc.verifyAndDecrypt(
@@ -481,7 +482,7 @@ class HapClient
                 const signature = data[Tag.Signature];
 
                 const user = username.toString('utf8');
-                debug("got username: " + username.toString('utf8'));
+                logger("got username: " + username.toString('utf8'));
                 return secureStore
                     .get(user)
                     .flatMap(
@@ -489,7 +490,7 @@ class HapClient
                             session.accessoryInfo = accessoryInfo;
 
                             const material =
-                                Buffer.concat([ session.serverPublicKey, username, session.publicKey ]);
+                                Buffer.concat([session.serverPublicKey, username, session.publicKey]);
                             return !accessoryInfo.ltpk
                                 ? Observable.throw(`Could not get LTPK for accessory ${user}`)
                                 : Sodium.crypto_sign_verify_detached(signature, material, accessoryInfo.ltpk)
@@ -511,14 +512,14 @@ class HapClient
                             const plaintext =
                                 tlv.encode(
                                     Tag.Username, clientId,
-                                    Tag.Signature, 
-                                        Sodium
-                                            .crypto_sign_detached(
-                                                material,
-                                                session.clientInfo.longTerm.secretKey)
+                                    Tag.Signature,
+                                    Sodium
+                                        .crypto_sign_detached(
+                                            material,
+                                            session.clientInfo.longTerm.secretKey)
                                 );
 
-                            const [ encrypted, seal ] =
+                            const [encrypted, seal] =
                                 enc.encryptAndSeal(
                                     plaintext,
                                     null,
@@ -529,7 +530,7 @@ class HapClient
                             return tlv.encode(
                                 Tag.PairingMethod, 0,
                                 Tag.Sequence, VerifyStep.FinishRequest.value,
-                                Tag.EncryptedData, Buffer.concat([ encrypted, seal ])
+                                Tag.EncryptedData, Buffer.concat([encrypted, seal])
                             );
                         }
                     )
@@ -549,7 +550,7 @@ class HapClient
             //
             //   WE ARE NOW VERIFIED.
 
-            debug('Verification complete.');
+            logger('Verification complete.');
 
             var encSalt = Buffer.from("Control-Salt");
             var infoRead = Buffer.from("Control-Read-Encryption-Key");
@@ -627,7 +628,7 @@ class HapClient
             ._verifyPairing()
             .ignoreElements();
     }
-    
+
     identify() {
         return this._client.get('/identify');
     }
@@ -653,12 +654,12 @@ class HapClient
             throw new TypeError("getCharacteristics must be given an even number of arguments");
         }
 
-        debug("building query for %o", args);
+        logger("building query for %o", args);
 
         return Observable
             .from(args)
             .bufferCount(2)
-            .map(([ aid, iid ]) => `${aid}.${iid}`)
+            .map(([aid, iid]) => `${aid}.${iid}`)
             .toArray()
             .map(x => x.join(','))
             .flatMap(

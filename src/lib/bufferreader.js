@@ -25,7 +25,7 @@ function seekToMark() {
 
 function nextLine(ending = '\r\n') {
     let pos, line;
-    if ((pos = this::indexOf(ending)) >= 0) {
+    if ((pos = indexOf.call(this, ending)) >= 0) {
         line = this.nextString(pos);
         this.move(ending.length);
         return line;

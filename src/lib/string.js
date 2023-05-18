@@ -15,9 +15,8 @@ function* splitGen(delimiter, limit = null) {
     let count = 0, match, buf = this;
     while (
         (limit === null || count < limit - 1)
-            && (match = re.exec(buf))
-    )
-    {
+        && (match = re.exec(buf))
+    ) {
         yield buf.substr(0, match.index);
         count += 1;
         buf = buf.substr(match.index + match[0].length);

@@ -1,4 +1,6 @@
-const debug = require('debug')('hap-client:tlv');
+import debug from 'debug';
+
+const logger = debug('hap-client:tlv');
 
 /**
  * Type Length Value encoding/decoding, used by HAP as a wire format.
@@ -16,24 +18,24 @@ const debug = require('debug')('hap-client:tlv');
  */
 
 const Tag = {
-    PairingMethod:  0x00,
-	Username:       0x01,
-	Salt:           0x02, // salt is 16 bytes long
+    PairingMethod: 0x00,
+    Username: 0x01,
+    Salt: 0x02, // salt is 16 bytes long
 
     // could be either the SRP client public key (384 bytes) or the ED25519 public key (32 bytes), depending on context
-	PublicKey:      0x03,
-	Proof:          0x04, // 64 bytes
-	EncryptedData:  0x05,
-	Sequence:       0x06,
-	ErrorCode:      0x07,
-	Signature:      0x0A, // 64 bytes
+    PublicKey: 0x03,
+    Proof: 0x04, // 64 bytes
+    EncryptedData: 0x05,
+    Sequence: 0x06,
+    ErrorCode: 0x07,
+    Signature: 0x0A, // 64 bytes
 
-	MFiCertificate: 0x09,
-	MFiSignature:   0x0A
+    MFiCertificate: 0x09,
+    MFiSignature: 0x0A
 };
 
 function append(...buffers) {
-    return Buffer.concat([ this, ...buffers ]);
+    return Buffer.concat([this, ...buffers]);
 }
 
 function encode(...args /* type, data, type, data... */) {
@@ -44,14 +46,14 @@ function encode(...args /* type, data, type, data... */) {
     var encodedTLVBuffer = Buffer.alloc(0);
 
     let type, data;
-    while (([ type, data, ...args ] = args) && (typeof type !== 'undefined')) {
+    while (([type, data, ...args] = args) && (typeof type !== 'undefined')) {
         // coerce data to Buffer if needed
         if (typeof data === 'number') {
-            debug("turning %d into buffer", data);
-            data = Buffer.from([ data ]);
+            logger("turning %d into buffer", data);
+            data = Buffer.from([data]);
         }
         else if (typeof data === 'string') {
-            debug("turning %s into buffer", data);
+            logger("turning %s into buffer", data);
             data = Buffer.from(data);
         }
 
@@ -60,14 +62,13 @@ function encode(...args /* type, data, type, data... */) {
         while (data.length - pos > 0) {
             let len = Math.min(data.length - pos, 255);
 
-            debug(`adding ${len} bytes of type ${type} to the buffer starting at ${pos}`);
+            logger(`adding ${len} bytes of type ${type} to the buffer starting at ${pos}`);
 
             encodedTLVBuffer =
-                encodedTLVBuffer
-                    ::append(
-                        Buffer.from([ type, len ]),
-                        data.slice(pos, pos + len)
-                    );
+                append.call(encodedTLVBuffer,
+                    Buffer.from([type, len]),
+                    data.slice(pos, pos + len)
+                );
 
             pos += len;
         }
@@ -79,14 +80,14 @@ function encode(...args /* type, data, type, data... */) {
 function decode(data) {
     let pos = 0, ret = {};
     while (data.length - pos > 0) {
-        let [ type, length ] = data.slice(pos);
+        let [type, length] = data.slice(pos);
 
         pos += 2;
 
         let newData = data.slice(pos, pos + length);
 
         if (ret[type]) {
-            ret[type] = ret[type]::append(newData);
+            ret[type] = append.call(ret[type], newData);
         } else {
             ret[type] = newData;
         }

@@ -1,7 +1,9 @@
 import { Observable } from 'rxjs';
 import Keytar from 'keytar';
 
-const debug = require('debug')('hap-client:securestore');
+import debug from 'debug';
+
+const logger = debug('hap-client:securestore');
 
 function loadClient(clientName) {
     return Observable
@@ -23,11 +25,11 @@ function saveClient(self) {
             'clientInfo',
             JSON.stringify(self)
         )
-    .then(() => self);
+        .then(() => self);
 }
 
 function load(clientName, username) {
-    debug(`loading for ${clientName}/${username}`);
+    logger(`loading for ${clientName}/${username}`);
     return Observable
         .from(
             Keytar
@@ -41,8 +43,8 @@ function load(clientName, username) {
 }
 
 function save(self) {
-    debug(`saving for ${self._clientName}/${self.user}`);
-    debug(`${JSON.stringify(self)}`);
+    logger(`saving for ${self._clientName}/${self.user}`);
+    logger(`${JSON.stringify(self)}`);
     return Keytar
         .setPassword(
             self._clientName,
@@ -52,8 +54,7 @@ function save(self) {
         .then(() => self);
 }
 
-class SecureAccessoryInfo
-{
+class SecureAccessoryInfo {
     constructor(clientName, username, json) {
         this._username = username;
         this._clientName = clientName;
@@ -99,8 +100,7 @@ class SecureAccessoryInfo
     }
 }
 
-class SecureClientInfo
-{
+class SecureClientInfo {
     constructor(clientName, json) {
         this._clientName = clientName;
 

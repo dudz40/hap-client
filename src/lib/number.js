@@ -15,7 +15,7 @@ import assert from 'assert';
 
 function splitUInt53(number) {
     const MAX_UINT32 = 0x00000000FFFFFFFF
-    const MAX_INT53 =  0x001FFFFFFFFFFFFF
+    const MAX_INT53 = 0x001FFFFFFFFFFFFF
 
     assert(number > -1 && number <= MAX_INT53, "number out of range")
     assert(Math.floor(number) === number, "number must be an integer")
@@ -27,14 +27,14 @@ function splitUInt53(number) {
     if (number > MAX_UINT32) {
         high = (number - low) / (MAX_UINT32 + 1)
     }
-    return [ high, low ]
+    return [high, low]
 }
 
 function UInt53toBufferLE(number) {
-    const [ high, low ] = splitUInt53(number)
+    const [high, low] = splitUInt53(number)
 
     const buf = Buffer.alloc(8);
-    buf.writeUInt32LE(low,  0);
+    buf.writeUInt32LE(low, 0);
     buf.writeUInt32LE(high, 4);
 
     return buf;

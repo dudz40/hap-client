@@ -1,5 +1,4 @@
 import { api as Sodium } from 'sodium';
-
 import { UInt53toBufferLE } from './number';
 
 function computePoly1305(cipherText, AAD, nonce, key) {

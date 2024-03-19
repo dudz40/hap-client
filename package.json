@@ -6,7 +6,7 @@
   "main": "src/HapClient.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/forty2/hap-client.git"
+    "url": "git+https://github.com/dudz40/hap-client.git"
   },
   "keywords": [
     "homekit",
@@ -19,7 +19,7 @@
   "scripts": {
     "test": "mocha"
   },
-  "author": "Zach Bean <zb@forty2.com>",
+  "author": "Martin Verbeek",
   "license": "MIT",
   "devDependencies": {
     "debug": "^4.3.4",
@@ -29,9 +29,9 @@
     "node": ">=18.0"
   },
   "bugs": {
-    "url": "https://github.com/forty2/hap-client/issues"
+    "url": "https://github.com/dudz40/hap-client/issues"
   },
-  "homepage": "https://github.com/forty2/hap-client#readme",
+  "homepage": "https://github.com/dudz40/hap-client#readme",
   "dependencies": {
     "buffer-reader": "^0.1.0",
     "enum": "^3.0.4",
